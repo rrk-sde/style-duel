@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "StyleDuel",
+  "version": "1.0.0",
+  "description": "Strip CSS from any site and gamify your CSS skills.",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "StyleDuel"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "js": [
+        "assets/content.tsx-loader-78M1J269.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ],
+      "css": [
+        "assets/index-4pzYes4N.css"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "resources": [
+        "assets/index-BufiGT3X.js",
+        "assets/content.tsx-982aG8EP.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ]
+}
