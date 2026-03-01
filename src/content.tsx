@@ -1,9 +1,15 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { EditorConsole } from './EditorConsole';
 import './index.css';
 
 let inspecting = false;
 let hoveredElement: HTMLElement | null = null;
 let savedStyles = new Map<HTMLElement, string>();
+let editorContainer: HTMLDivElement | null = null;
+let styleTag: HTMLStyleElement | null = null;
 
+// The glowing highlight box
 const highlightBox = document.createElement('div');
 highlightBox.style.position = 'fixed';
 highlightBox.style.pointerEvents = 'none';
@@ -28,31 +34,71 @@ const updateHighlight = (el: HTMLElement) => {
 const handleMouseOver = (e: MouseEvent) => {
     if (!inspecting) return;
     const target = e.target as HTMLElement;
-    if (target === highlightBox) return;
+    // Ignore hovering over our own extension elements
+    if (target === highlightBox || target.closest('#style-duel-root')) return;
+
     e.stopPropagation();
     hoveredElement = target;
     updateHighlight(target);
 };
 
+const handleEditorClose = () => {
+    if (editorContainer) {
+        editorContainer.remove();
+        editorContainer = null;
+    }
+    if (styleTag) {
+        styleTag.remove();
+        styleTag = null;
+    }
+};
+
+const handleEditorApply = (cssText: string) => {
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'style-duel-injected';
+        document.head.appendChild(styleTag);
+    }
+
+    // Scoped to the hovered element to prevent breaking the rest of the page layout
+    if (hoveredElement) {
+        const duelClass = `style-duel-target-${Date.now()}`;
+        hoveredElement.classList.add(duelClass);
+        styleTag.textContent = `.${duelClass} { ${cssText} }`;
+    }
+};
+
 const handleClick = (e: MouseEvent) => {
     if (!inspecting || !hoveredElement) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('#style-duel-root')) return;
+
     e.preventDefault();
     e.stopPropagation();
 
-    // Strip styles and start duel
-    const originalStyle = hoveredElement.getAttribute('style') || '';
-    savedStyles.set(hoveredElement, originalStyle);
-
-    // Wipe out CSS classes and inline styles to strip it naked
+    // Strip element bare
+    savedStyles.set(hoveredElement, hoveredElement.getAttribute('style') || '');
     hoveredElement.className = '';
     hoveredElement.setAttribute('style', 'all: initial !important;');
 
-    // Stop inspecting
+    // Stop picking mode
     toggleInspectMode(false);
-    highlightBox.style.display = 'none';
 
-    // Later we inject React app for editing here
-    console.log('StyleDuel Started on Element:', hoveredElement);
+    // Mount the React Editor
+    if (!editorContainer) {
+        editorContainer = document.createElement('div');
+        editorContainer.id = 'style-duel-root';
+        document.body.appendChild(editorContainer);
+
+        const root = createRoot(editorContainer);
+        root.render(
+            <EditorConsole
+                targetElement={hoveredElement}
+                onClose={handleEditorClose}
+                onApply={handleEditorApply}
+            />
+        );
+    }
 };
 
 const toggleInspectMode = (active: boolean) => {
